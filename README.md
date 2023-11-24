@@ -26,6 +26,11 @@ Netleaf comes with a Windows installer for easy installation.
 4. View the results in the "Connected Devices" and "Console" sections.
 5. Save the scan results to a CSV file using the "Save to File" option in the menu.
 
+## Dependencies
+
+- Python 3.9
+- PyQt5==5.15.10
+
 ## Settings
 
 The application allows you to customize its appearance.
