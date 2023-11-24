@@ -6,8 +6,8 @@ Netleaf is a simple network scanner written in Python using PyQt5. It allows you
 
 ## Features
 
-- Scan devices in a specified IP range
-- Display connected devices and their status
+- Scan devices in a specified IP range(using ICMP(ping) protocol) 
+- Display connected devices and their status (the program may not work properly if you are using a gray IP address or if you have devices with DHCP enabled)
 - Save scan results to a CSV file
 - Dark and light theme options
 
