@@ -29,7 +29,7 @@ Netleaf comes with a Windows installer for easy installation.
 ## Dependencies
 
 - Python 3.9
-- PyQt5==5.15.10
+- PyQt5 5.15.10
 
 ## Settings
 
