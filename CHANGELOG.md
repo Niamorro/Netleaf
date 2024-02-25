@@ -1,5 +1,11 @@
 ## Changes to Netleaf
 
+## [v1.2] - 2024-2-25
+
+### Changed
+- PySide6 Migration
+- Better UI
+
 ## [v1.1] - 2023-12-16
 
 ### Added
