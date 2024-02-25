@@ -2,7 +2,7 @@
 
 ![template](https://github.com/Niamorro/Netleaf/assets/123011549/1b4c43d9-2db6-413d-951d-df0648d19992)
 
-Netleaf is a simple network scanner written in Python using PyQt5. It allows you to scan devices in a given IP range and provides information about their status.
+Netleaf is a simple network scanner written in Python using PySide6. It allows you to scan devices in a given IP range and provides information about their status.
 
 ## Features
 
@@ -29,7 +29,6 @@ Netleaf comes with a Windows installer for easy installation.
 ## Dependencies
 
 - Python 3.9
-- PyQt5 5.15.10
 
 ## Settings
 
@@ -41,15 +40,8 @@ The application allows you to customize its appearance.
 
 ## Main Window
 
-<img width="397" alt="mainwindowscreen" src="https://github.com/Niamorro/Netleaf/assets/123011549/18e56c64-a2c3-412f-a6b1-cb147a4755b0">
+![изображение](https://github.com/Niamorro/Netleaf/assets/123011549/4ae6a7ca-d405-4d98-ab65-1e89f18f0710)
 
 ## License
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- PyQt5 for the GUI framework
-
-## Author
-Niamorro
