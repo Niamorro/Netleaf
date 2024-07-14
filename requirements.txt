@@ -1,2 +1,2 @@
 PySide6==6.2.2
-qdarktheme==2.1.0
+pyqtdarktheme==2.1.0

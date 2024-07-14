@@ -1,15 +1,17 @@
-# Netleaf
+# Netleaf - Network Scanner
 
 ![template](https://github.com/Niamorro/Netleaf/assets/123011549/1b4c43d9-2db6-413d-951d-df0648d19992)
 
-Netleaf is a simple network scanner written in Python using PySide6. It allows you to scan devices in a given IP range and provides information about their status.
+Netleaf is a powerful and user-friendly network scanning tool built with Python and PySide6. It provides both IP and port scanning capabilities with a clean and intuitive graphical user interface.
 
 ## Features
 
-- Scan devices in a specified IP range(using ICMP(ping) protocol) 
-- Display connected devices and their status (the program may not work properly if you are using a gray IP address or if you have devices with DHCP enabled)
-- Save scan results to a CSV file
-- Dark and light theme options
+- IP range scanning
+- Port scanning
+- Dark and light theme support
+- Customizable scanning settings
+- Results filtering
+- CSV export functionality
 
 ## Installation
 
@@ -20,27 +22,35 @@ Netleaf comes with a Windows installer for easy installation.
 
 ## Usage
 
-1. Launch the application.
-2. Enter the desired IP range in the provided fields.
-3. Click the "Scan Devices" button to start the scanning process.
-4. View the results in the "Connected Devices" and "Console" sections.
-5. Save the scan results to a CSV file using the "Save to File" option in the menu.
+### IP Scanning
 
-## Dependencies
+1. Enter the IP range to scan.
+2. Click "Scan Devices" to start the IP scan.
+3. View results in the table.
+4. Use the filter dropdown to filter results.
 
-- Python 3.9
+### Port Scanning
 
-## Settings
+1. Switch to the "Port Scan" tab.
+2. Enter the IP address and port range to scan.
+3. Click "Scan Ports" to start the port scan.
+4. View results in the table.
 
-The application allows you to customize its appearance.
+### Configuration
 
-1. Open the "Settings" menu.
-2. Choose between light and dark themes.
-3. Click "Ok" to apply the changes.
+You can customize various settings through the Settings menu:
+
+- Appearance: Choose between light and dark themes
+- Logging: Enable/disable logging
+- Scanning: Configure scan attempts, protocols, and timeouts
+
+### Exporting Results
+
+Use the "Save to File" option in the File menu to export scan results as a CSV file.
 
 ## Main Window
 
-![изображение](https://github.com/Niamorro/Netleaf/assets/123011549/4ae6a7ca-d405-4d98-ab65-1e89f18f0710)
+![alt text](image.png)
 
 ## License
 
