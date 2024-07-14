@@ -1,0 +1,26 @@
+{
+    "Appearance": {
+        "Theme": "Light"
+    },
+    "Logging": {
+        "CreateLogs": false
+    },
+    "Scanning": {
+        "Attempts": 5,
+        "Protocols": {
+            "ICMP": true,
+            "TCP": true,
+            "UDP": true,
+            "ARP": true
+        },
+        "TCPPorts": [
+            80,
+            443,
+            22,
+            21
+        ],
+        "ICMPTimeout": 2000,
+        "GeneralTimeout": 3,
+        "Threads": 100
+    }
+}
