@@ -1,12 +1,22 @@
 ## Changes to Netleaf
 
-## [v1.2] - 2024-2-25
+## [v2.1.1] - 2024-7-15
+
+### Added
+- Port Scan, TCP, UDP, ARP scanning
+- MAC address display
+- Improved optimization.
+
+### Changed
+- Update UI and settings.
+
+## [v1.2.0] - 2024-2-25
 
 ### Changed
 - PySide6 Migration
 - Better UI
 
-## [v1.1] - 2023-12-16
+## [v1.1.0] - 2023-12-16
 
 ### Added
 - Added ability to filter scan results.
@@ -19,7 +29,7 @@
 - Fixed bug with displaying colors of scan results.
 - Fixed issues with IP address processing in the scanning module.
 
-### [v1.0] - 2023-12-04
+### [v1.0.0] - 2023-12-04
 
 ### Added
 - Initial version of Netleaf.
