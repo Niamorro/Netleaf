@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netleaf - Powerful Network Scanner</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/Niamorro/Netleaf/main/Netleaf Project v2.1.1/resources/icon.png" type="image/png">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #F0E68C;
+            margin: 0;
+            padding: 0;
+            background-color: #2C2C2C;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            overflow: hidden;
+        }
+        header {
+            background: #3C3C3C;
+            color: #F0E68C;
+            padding-top: 30px;
+            min-height: 70px;
+            border-bottom: #F0E68C 3px solid;
+        }
+        header a {
+            color: #F0E68C;
+            text-decoration: none;
+            text-transform: uppercase;
+            font-size: 16px;
+        }
+        header li {
+            float: left;
+            display: inline;
+            padding: 0 20px 0 20px;
+        }
+        header #branding {
+            float: left;
+            display: flex;
+            align-items: center;
+        }
+        header #branding img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+        header #branding h1 {
+            margin: 0;
+        }
+        header nav {
+            float: right;
+            margin-top: 10px;
+        }
+        header .highlight, header .current a {
+            color: #FAFAD2;
+            font-weight: bold;
+        }
+        header a:hover {
+            color: #FAFAD2;
+            font-weight: bold;
+        }
+        #showcase {
+            min-height: 400px;
+            background: url('https://source.unsplash.com/random/1600x900/?dark,network,pastel') no-repeat center center/cover;
+            text-align: center;
+            color: #F0E68C;
+        }
+        #showcase h1 {
+            margin-top: 100px;
+            font-size: 55px;
+            margin-bottom: 10px;
+        }
+        #showcase p {
+            font-size: 20px;
+        }
+        .button {
+            display: inline-block;
+            font-size: 18px;
+            color: #2C2C2C;
+            background: #F0E68C;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover {
+            background: #FAFAD2;
+        }
+        #features {
+            margin-top: 20px;
+        }
+        .box {
+            float: left;
+            width: 30%;
+            padding: 10px;
+            text-align: center;
+            background: #3C3C3C;
+            margin: 10px;
+            border-radius: 5px;
+        }
+        footer {
+            padding: 20px;
+            margin-top: 20px;
+            color: #F0E68C;
+            background-color: #3C3C3C;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div id="branding">
+                <img src="https://raw.githubusercontent.com/Niamorro/Netleaf/main/Netleaf Project v2.1.1/resources/icon.png" alt="Netleaf Logo">
+                <h1><span class="highlight">Netleaf</span> Network Scanner</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li class="current"><a href="#home">Home</a></li>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#download">Download</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section id="showcase">
+        <div class="container">
+            <h1>Powerful Network Scanning Tool</h1>
+            <p>Discover and analyze your network with ease using Netleaf</p>
+            <a href="https://github.com/Niamorro/Netleaf/releases/download/v2.1.1/Netleaf.Setup.v2.1.1.exe" class="button">Download for Windows</a>
+        </div>
+    </section>
+
+    <section id="features">
+        <div class="container">
+            <div class="box">
+                <h3>IP Scanning</h3>
+                <p>Quickly scan IP ranges to discover active devices on your network.</p>
+            </div>
+            <div class="box">
+                <h3>Port Scanning</h3>
+                <p>Identify open ports and services running on network devices.</p>
+            </div>
+            <div class="box">
+                <h3>User-Friendly Interface</h3>
+                <p>Intuitive GUI with dark and light themes for comfortable usage.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="download">
+        <div class="container">
+            <h2>Download Netleaf for Windows</h2>
+            <p>Get started with Netleaf today:</p>
+            <a href="https://github.com/Niamorro/Netleaf/releases/download/v2.1.1/Netleaf.Setup.v2.1.1.exe" class="button">Download Netleaf v2.1.1</a>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2023 Netleaf Network Scanner. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>
