@@ -2,7 +2,7 @@
 
 ![template](https://github.com/Niamorro/Netleaf/assets/123011549/1b4c43d9-2db6-413d-951d-df0648d19992)
 
-Netleaf is a powerful and user-friendly network scanning tool built with Python and PySide6. It provides both IP and port scanning capabilities with a clean and intuitive graphical user interface.
+Netleaf is a simple and user-friendly network scanning tool built with Python and PySide6. It provides both IP and port scanning capabilities with a clean and intuitive graphical user interface.
 
 ## Features
 
