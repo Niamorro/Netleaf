@@ -1,0 +1,135 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number'
+        required: true
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            output_name: netleaf_linux
+          - os: windows-latest
+            output_name: netleaf_windows.exe
+          - os: macos-latest
+            output_name: netleaf_macos
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+    - name: Build with PyInstaller
+      run: pyinstaller --onefile --windowed --icon=docs/icon.ico --add-data "resources:resources" main.py
+    - name: Rename output
+      run: |
+        cd dist
+        mv main* ${{ matrix.output_name }}
+      shell: bash
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ matrix.output_name }}
+        path: dist/${{ matrix.output_name }}
+
+  build-deb-rpm:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y rpm
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+    - name: Build with PyInstaller
+      run: pyinstaller --onefile --windowed --icon=docs/icon.ico --add-data "resources:resources" main.py
+    - name: Create DEB package
+      run: |
+        mkdir -p netleaf_deb/DEBIAN
+        mkdir -p netleaf_deb/usr/bin
+        cp dist/main netleaf_deb/usr/bin/netleaf
+        echo "Package: netleaf
+        Version: ${{ github.event.inputs.version }}
+        Section: base
+        Priority: optional
+        Architecture: all
+        Maintainer: Niamorro <niamorrodev@gmail.com>
+        Description: Netleaf application
+        " > netleaf_deb/DEBIAN/control
+        dpkg-deb --build netleaf_deb
+    - name: Create RPM package
+      run: |
+        mkdir -p netleaf_rpm/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+        cp dist/main netleaf_rpm/BUILD/netleaf
+        echo "Summary: Netleaf application
+        Name: netleaf
+        Version: ${{ github.event.inputs.version }}
+        Release: 1
+        License: MIT
+        Group: Applications/Internet
+        BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
+        %description
+        Netleaf application
+        %files
+        /usr/bin/netleaf
+        %install
+        mkdir -p %{buildroot}/usr/bin
+        cp %{_builddir}/netleaf %{buildroot}/usr/bin/netleaf
+        " > netleaf_rpm/SPECS/netleaf.spec
+        rpmbuild -bb --define "_topdir $(pwd)/netleaf_rpm" netleaf_rpm/SPECS/netleaf.spec
+    - name: Upload DEB artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: netleaf_deb
+        path: netleaf_deb.deb
+    - name: Upload RPM artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: netleaf_rpm
+        path: netleaf_rpm/RPMS/x86_64/netleaf-${{ github.event.inputs.version }}-1.x86_64.rpm
+
+  create-release:
+    needs: [build, build-deb-rpm]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.event.inputs.version }}
+        release_name: Release v${{ github.event.inputs.version }}
+        draft: false
+        prerelease: false
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v2
+
+    - name: Upload Release Assets
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        for file in netleaf_*/netleaf_*
+        do
+          gh release upload v${{ github.event.inputs.version }} "$file"
+        done
