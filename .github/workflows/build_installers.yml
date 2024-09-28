@@ -14,6 +14,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: [3.9]
+    timeout-minutes: 30  # Set a timeout to prevent indefinite hanging
 
     steps:
     - uses: actions/checkout@v3
@@ -31,11 +32,20 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install PySide6 nuitka
-
+      
     - name: Build with Nuitka
       run: |
         python -m nuitka --standalone --enable-plugin=pyside6 --follow-imports \
         --include-package=PySide6 --output-dir=dist "Netleaf ${{ env.APP_VERSION }}/main.py"
+      shell: bash
+      
+    - name: Check Nuitka build output
+      run: |
+        ls -R dist
+        if [ ! -f dist/main.dist/main.bin ] && [ ! -f dist/main.dist/main.exe ]; then
+          echo "Error: Nuitka build failed to produce expected output"
+          exit 1
+        fi
       shell: bash
 
     - name: Create Windows Installer
@@ -57,13 +67,29 @@ jobs:
         "@
         Set-Content -Path "installer.nsi" -Value $NSIS_SCRIPT
         makensis installer.nsi
+        if (-not (Test-Path "dist\Netleaf ${{ env.APP_VERSION }}.exe")) {
+          Write-Error "Failed to create Windows installer"
+          exit 1
+        }
 
     - name: Create macOS DMG
       if: matrix.os == 'macos-latest'
       run: |
         mkdir -p dist/Netleaf.app/Contents/MacOS
-        mv dist/main.bin dist/Netleaf.app/Contents/MacOS/Netleaf
+        if [ ! -f dist/main.dist/main.bin ]; then
+          echo "Error: dist/main.dist/main.bin not found. Nuitka build may have failed."
+          exit 1
+        fi
+        mv dist/main.dist/main.bin dist/Netleaf.app/Contents/MacOS/Netleaf
+        if [ $? -ne 0 ]; then
+          echo "Error: Failed to move main.bin to Netleaf.app"
+          exit 1
+        fi
         hdiutil create -volname "Netleaf ${{ env.APP_VERSION }}" -srcfolder dist/Netleaf.app -ov -format UDZO "dist/Netleaf ${{ env.APP_VERSION }}.dmg"
+        if [ $? -ne 0 ]; then
+          echo "Error: Failed to create DMG"
+          exit 1
+        fi
 
     - name: Create Linux .deb package
       if: matrix.os == 'ubuntu-latest'
@@ -81,6 +107,10 @@ jobs:
         Description: Netleaf application
         " > dist/deb/DEBIAN/control
         dpkg-deb --build dist/deb "dist/Netleaf ${{ env.APP_VERSION }}.deb"
+        if [ ! -f "dist/Netleaf ${{ env.APP_VERSION }}.deb" ]; then
+          echo "Error: Failed to create .deb package"
+          exit 1
+        fi
 
     - name: Create Linux .rpm package
       if: matrix.os == 'ubuntu-latest'
@@ -104,7 +134,15 @@ jobs:
         # Add any post-install commands here
         " > dist/netleaf.spec
         rpmbuild -bb --define "_topdir $(pwd)/dist/rpm" dist/netleaf.spec
+        if [ $? -ne 0 ]; then
+          echo "Error: Failed to build .rpm package"
+          exit 1
+        fi
         mv dist/rpm/RPMS/*/*.rpm "dist/Netleaf ${{ env.APP_VERSION }}.rpm"
+        if [ ! -f "dist/Netleaf ${{ env.APP_VERSION }}.rpm" ]; then
+          echo "Error: Failed to create .rpm package"
+          exit 1
+        fi
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
