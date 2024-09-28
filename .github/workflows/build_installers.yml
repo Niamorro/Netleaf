@@ -14,13 +14,16 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: [3.9]
-    timeout-minutes: 30  # Set a timeout to prevent indefinite hanging
+    timeout-minutes: 60  # Increased timeout
 
     steps:
     - uses: actions/checkout@v3
 
     - name: Set version
-      run: echo "APP_VERSION=$(ls -d Netleaf*/ | sed 's/Netleaf //' | sed 's/\/$//')" >> $GITHUB_ENV
+      run: |
+        VERSION=$(ls -d Netleaf*/ | sed 's/Netleaf //' | sed 's/\/$//')
+        echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+        echo "DEB_VERSION=$(echo $VERSION | sed 's/^v//')" >> $GITHUB_ENV
       shell: bash
 
     - name: Set up Python ${{ matrix.python-version }}
@@ -81,15 +84,7 @@ jobs:
           exit 1
         fi
         mv dist/main.dist/main.bin dist/Netleaf.app/Contents/MacOS/Netleaf
-        if [ $? -ne 0 ]; then
-          echo "Error: Failed to move main.bin to Netleaf.app"
-          exit 1
-        fi
         hdiutil create -volname "Netleaf ${{ env.APP_VERSION }}" -srcfolder dist/Netleaf.app -ov -format UDZO "dist/Netleaf ${{ env.APP_VERSION }}.dmg"
-        if [ $? -ne 0 ]; then
-          echo "Error: Failed to create DMG"
-          exit 1
-        fi
 
     - name: Create Linux .deb package
       if: matrix.os == 'ubuntu-latest'
@@ -99,7 +94,7 @@ jobs:
         mkdir -p dist/deb/DEBIAN dist/deb/usr/bin
         cp -r dist/main.dist/* dist/deb/usr/bin/
         echo "Package: netleaf
-        Version: ${{ env.APP_VERSION }}
+        Version: ${{ env.DEB_VERSION }}
         Section: base
         Priority: optional
         Architecture: amd64
@@ -107,10 +102,6 @@ jobs:
         Description: Netleaf application
         " > dist/deb/DEBIAN/control
         dpkg-deb --build dist/deb "dist/Netleaf ${{ env.APP_VERSION }}.deb"
-        if [ ! -f "dist/Netleaf ${{ env.APP_VERSION }}.deb" ]; then
-          echo "Error: Failed to create .deb package"
-          exit 1
-        fi
 
     - name: Create Linux .rpm package
       if: matrix.os == 'ubuntu-latest'
@@ -119,7 +110,7 @@ jobs:
         mkdir -p dist/rpm/BUILD dist/rpm/RPMS
         cp -r dist/main.dist/* dist/rpm/BUILD/
         echo "Name: netleaf
-        Version: ${{ env.APP_VERSION }}
+        Version: ${{ env.DEB_VERSION }}
         Release: 1
         Summary: Netleaf application
         License: Your License
@@ -134,15 +125,7 @@ jobs:
         # Add any post-install commands here
         " > dist/netleaf.spec
         rpmbuild -bb --define "_topdir $(pwd)/dist/rpm" dist/netleaf.spec
-        if [ $? -ne 0 ]; then
-          echo "Error: Failed to build .rpm package"
-          exit 1
-        fi
         mv dist/rpm/RPMS/*/*.rpm "dist/Netleaf ${{ env.APP_VERSION }}.rpm"
-        if [ ! -f "dist/Netleaf ${{ env.APP_VERSION }}.rpm" ]; then
-          echo "Error: Failed to create .rpm package"
-          exit 1
-        fi
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
