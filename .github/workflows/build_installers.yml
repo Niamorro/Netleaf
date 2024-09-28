@@ -1,0 +1,117 @@
+name: Build Netleaf App Installers
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: [3.9]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set version
+      run: echo "APP_VERSION=$(ls -d Netleaf*/ | sed 's/Netleaf //' | sed 's/\/$//')" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install PySide6 nuitka
+
+    - name: Build with Nuitka
+      run: |
+        python -m nuitka --standalone --enable-plugin=pyside6 --follow-imports \
+        --include-package=PySide6 --output-dir=dist "Netleaf ${{ env.APP_VERSION }}/main.py"
+      shell: bash
+
+    - name: Create Windows Installer
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install nsis -y
+        $NSIS_SCRIPT = @"
+        !include MUI2.nsh
+        Name "Netleaf ${{ env.APP_VERSION }}"
+        OutFile "dist\Netleaf ${{ env.APP_VERSION }}.exe"
+        InstallDir "$PROGRAMFILES\Netleaf"
+        !insertmacro MUI_PAGE_DIRECTORY
+        !insertmacro MUI_PAGE_INSTFILES
+        Section "Install"
+          SetOutPath "$INSTDIR"
+          File /r "dist\main.dist\*"
+          CreateShortCut "$DESKTOP\Netleaf.lnk" "$INSTDIR\main.exe"
+        SectionEnd
+        "@
+        Set-Content -Path "installer.nsi" -Value $NSIS_SCRIPT
+        makensis installer.nsi
+
+    - name: Create macOS DMG
+      if: matrix.os == 'macos-latest'
+      run: |
+        mkdir -p dist/Netleaf.app/Contents/MacOS
+        mv dist/main.bin dist/Netleaf.app/Contents/MacOS/Netleaf
+        hdiutil create -volname "Netleaf ${{ env.APP_VERSION }}" -srcfolder dist/Netleaf.app -ov -format UDZO "dist/Netleaf ${{ env.APP_VERSION }}.dmg"
+
+    - name: Create Linux .deb package
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y dpkg-dev
+        mkdir -p dist/deb/DEBIAN dist/deb/usr/bin
+        cp -r dist/main.dist/* dist/deb/usr/bin/
+        echo "Package: netleaf
+        Version: ${{ env.APP_VERSION }}
+        Section: base
+        Priority: optional
+        Architecture: amd64
+        Maintainer: Your Name <your.email@example.com>
+        Description: Netleaf application
+        " > dist/deb/DEBIAN/control
+        dpkg-deb --build dist/deb "dist/Netleaf ${{ env.APP_VERSION }}.deb"
+
+    - name: Create Linux .rpm package
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get install -y rpm
+        mkdir -p dist/rpm/BUILD dist/rpm/RPMS
+        cp -r dist/main.dist/* dist/rpm/BUILD/
+        echo "Name: netleaf
+        Version: ${{ env.APP_VERSION }}
+        Release: 1
+        Summary: Netleaf application
+        License: Your License
+        
+        %description
+        Netleaf application
+        
+        %files
+        /usr/bin/*
+        
+        %post
+        # Add any post-install commands here
+        " > dist/netleaf.spec
+        rpmbuild -bb --define "_topdir $(pwd)/dist/rpm" dist/netleaf.spec
+        mv dist/rpm/RPMS/*/*.rpm "dist/Netleaf ${{ env.APP_VERSION }}.rpm"
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: installer-${{ matrix.os }}
+        path: |
+          dist/Netleaf*.exe
+          dist/Netleaf*.dmg
+          dist/Netleaf*.deb
+          dist/Netleaf*.rpm
