@@ -30,19 +30,21 @@ jobs:
         pip install nuitka
 
     - name: Extract version and folder name
-      id: get_version
+      shell: pwsh
       run: |
-        FOLDER_NAME=$(ls | grep 'Netleaf v')
-        VERSION=${FOLDER_NAME##*v}
-        echo "version=$VERSION" >> $GITHUB_ENV
-        echo "folder_name=$FOLDER_NAME" >> $GITHUB_ENV
+        # Find the folder name that starts with 'Netleaf v'
+        $folderName = Get-ChildItem -Path . -Directory | Where-Object { $_.Name -match '^Netleaf v' } | Select-Object -ExpandProperty Name
+        # Extract the version from the folder name
+        $version = $folderName -replace '.*v', ''
+        echo "version=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "folder_name=$folderName" | Out-File -FilePath $env:GITHUB_ENV -Append
 
     - name: Build with Nuitka
       run: |
         mkdir -p dist
         nuitka --onefile \
-               --include-data-dir="${{ github.workspace }}/${{ env.folder_name }}/resources=resources" \
-               "${{ github.workspace }}/${{ env.folder_name }}/main.py" \
+               --include-data-dir="${{ github.workspace }}\${{ env.folder_name }}\resources=resources" \
+               "${{ github.workspace }}\${{ env.folder_name }}\main.py" \
                --output-dir=dist
 
     - name: Package for Windows
