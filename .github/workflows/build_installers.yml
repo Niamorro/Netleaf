@@ -25,10 +25,10 @@ jobs:
             output_name: Netleaf.exe
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: '3.x'
 
@@ -73,7 +73,7 @@ jobs:
         fpm -s dir -t rpm -n "${{ env.APP_NAME }}" -v "${{ env.APP_VERSION }}" "./dist/${{ matrix.output_name }}=/usr/bin/${{ env.APP_NAME }}"
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ env.APP_NAME }}-${{ matrix.os }}
         path: dist/*
