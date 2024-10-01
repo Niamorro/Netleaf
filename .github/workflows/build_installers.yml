@@ -14,7 +14,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: [3.9]
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
     - uses: actions/checkout@v3
@@ -41,20 +41,21 @@ jobs:
       run: |
         python -m nuitka --standalone --enable-plugin=pyside6 --follow-imports `
         --include-package=PySide6 --output-dir=dist "Netleaf ${{ env.APP_VERSION }}/main.py" `
-        --assume-yes-for-downloads
+        --assume-yes-for-downloads --jobs=2
       shell: pwsh
 
     - name: Build with Nuitka (non-Windows)
       if: matrix.os != 'windows-latest'
       run: |
         python -m nuitka --standalone --enable-plugin=pyside6 --follow-imports \
-        --include-package=PySide6 --output-dir=dist "Netleaf ${{ env.APP_VERSION }}/main.py"
+        --include-package=PySide6 --output-dir=dist "Netleaf ${{ env.APP_VERSION }}/main.py" \
+        --jobs=2
       shell: bash
       
     - name: Check Nuitka build output
       run: |
         ls -R dist
-        if [ ! -f dist/main.dist/main.bin ] && [ ! -f dist/main.dist/main.exe ]; then
+        if [ ! -f dist/main.dist/main ] && [ ! -f dist/main.dist/main.exe ]; then
           echo "Error: Nuitka build failed to produce expected output"
           exit 1
         fi
@@ -88,11 +89,7 @@ jobs:
       if: matrix.os == 'macos-latest'
       run: |
         mkdir -p dist/Netleaf.app/Contents/MacOS
-        if [ ! -f dist/main.dist/main.bin ]; then
-          echo "Error: dist/main.dist/main.bin not found. Nuitka build may have failed."
-          exit 1
-        fi
-        mv dist/main.dist/main.bin dist/Netleaf.app/Contents/MacOS/Netleaf
+        mv dist/main.dist/main dist/Netleaf.app/Contents/MacOS/Netleaf
         hdiutil create -volname "Netleaf ${{ env.APP_VERSION }}" -srcfolder dist/Netleaf.app -ov -format UDZO "dist/Netleaf ${{ env.APP_VERSION }}.dmg"
 
     - name: Create Linux .deb package
@@ -116,24 +113,35 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get install -y rpm
-        mkdir -p dist/rpm/BUILD dist/rpm/RPMS
+        mkdir -p dist/rpm/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
         cp -r dist/main.dist/* dist/rpm/BUILD/
         echo "Name: netleaf
         Version: ${{ env.DEB_VERSION }}
         Release: 1
         Summary: Netleaf application
         License: Your License
+        BuildRoot: %{_topdir}/BUILDROOT
         
         %description
         Netleaf application
+        
+        %prep
+        # No prep needed
+        
+        %build
+        # No build needed
+        
+        %install
+        mkdir -p %{buildroot}/usr/bin
+        cp -r %{_topdir}/BUILD/* %{buildroot}/usr/bin/
         
         %files
         /usr/bin/*
         
         %post
         # Add any post-install commands here
-        " > dist/netleaf.spec
-        rpmbuild -bb --define "_topdir $(pwd)/dist/rpm" dist/netleaf.spec
+        " > dist/rpm/SPECS/netleaf.spec
+        rpmbuild -bb --define "_topdir $(pwd)/dist/rpm" dist/rpm/SPECS/netleaf.spec
         mv dist/rpm/RPMS/*/*.rpm "dist/Netleaf ${{ env.APP_VERSION }}.rpm"
 
     - name: Upload artifacts
