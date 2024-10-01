@@ -130,7 +130,8 @@ jobs:
         mv ~/rpmbuild/RPMS/x86_64/netleaf-${{ env.VERSION }}-1.x86_64.rpm "Netleaf Setup v${{ env.VERSION }}.rpm"
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: Netleaf Setup v${{ env.VERSION }}
         path: Netleaf Setup v${{ env.VERSION }}.*
+        if-no-files-found: error
