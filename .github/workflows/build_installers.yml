@@ -29,16 +29,20 @@ jobs:
         pip install -r requirements.txt
         pip install nuitka
 
-    - name: Extract version
+    - name: Extract version and folder name
       id: get_version
-      run: echo "version=${GITHUB_WORKSPACE##*_}" >> $GITHUB_ENV
+      run: |
+        FOLDER_NAME=$(ls | grep 'Netleaf v')
+        VERSION=${FOLDER_NAME##*v}
+        echo "version=$VERSION" >> $GITHUB_ENV
+        echo "folder_name=$FOLDER_NAME" >> $GITHUB_ENV
 
     - name: Build with Nuitka
       run: |
         mkdir -p dist
         nuitka --onefile \
-               --include-data-dir="${{ github.workspace }}/Netleaf v${{ env.version }}/resources=resources" \
-               "${{ github.workspace }}/Netleaf v${{ env.version }}/main.py" \
+               --include-data-dir="${{ github.workspace }}/${{ env.folder_name }}/resources=resources" \
+               "${{ github.workspace }}/${{ env.folder_name }}/main.py" \
                --output-dir=dist
 
     - name: Package for Windows
@@ -49,22 +53,18 @@ jobs:
     - name: Package for macOS
       if: matrix.os == 'macos-latest'
       run: |
-        # Create a .dmg using hdiutil or any other suitable tool
         hdiutil create -volname "Netleaf Setup v${{ env.version }}" -srcfolder dist -ov -format UDZO "dist/Netleaf Setup v${{ env.version }}.dmg"
 
     - name: Package for Linux (deb)
       if: matrix.os == 'ubuntu-latest'
       run: |
-        # Install FPM for packaging
         sudo apt-get install -y ruby ruby-dev rubygems build-essential
         sudo gem install --no-document fpm
-        # Create .deb package
         fpm -s dir -t deb -n "netleaf" -v "${{ env.version }}" --license "GPLv3" --maintainer "Niamorro" --description "Netleaf Application" --after-install <(echo '#!/bin/bash\nexit 0') --after-remove <(echo '#!/bin/bash\nexit 0') dist/=/
 
     - name: Package for Linux (rpm)
       if: matrix.os == 'ubuntu-latest'
       run: |
-        # Create .rpm package
         fpm -s dir -t rpm -n "netleaf" -v "${{ env.version }}" --license "GPLv3" --maintainer "Niamorro" --description "Netleaf Application" --after-install <(echo '#!/bin/bash\nexit 0') --after-remove <(echo '#!/bin/bash\nexit 0') dist/=/
         
     - name: Upload artifacts
