@@ -35,6 +35,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install nuitka imageio pyqtdarktheme
+        pip list
 
     - name: Get version from folder name
       id: get_version
@@ -46,9 +47,15 @@ jobs:
       run: |
         python -m nuitka --standalone --onefile \
         --include-data-dir="Netleaf v${{ env.VERSION }}/resources=resources" \
+        --include-package-data=PySide6 \
+        --include-package-data=pyqtdarktheme \
         --include-package=PySide6 \
         --include-package=pyqtdarktheme \
+        --follow-imports \
         --windows-icon-from-ico="Netleaf v${{ env.VERSION }}/resources/icon.png" \
+        --disable-console \
+        --assume-yes-for-downloads \
+        --verbose \
         "Netleaf v${{ env.VERSION }}/main.py"
 
     - name: Create Windows Installer
