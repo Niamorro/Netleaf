@@ -1,32 +1,25 @@
-name: Build Netleaf Installers
+name: Build Installers
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            output_extension: [deb, rpm]
-          - os: windows-latest
-            output_extension: [exe]
-          - os: macos-latest
-            output_extension: [dmg]
-
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-
     steps:
-    - uses: actions/checkout@v2
+    - name: Check out the repository
+      uses: actions/checkout@v2
 
     - name: Set up Python 3.11
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: '3.11'
 
@@ -34,131 +27,45 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install nuitka imageio
-        pip list
+        pip install nuitka
 
-    - name: Get version from folder name
+    - name: Extract version
       id: get_version
-      run: |
-        VERSION=$(ls -d Netleaf\ v*/ | sed 's/Netleaf v\(.*\)\//\1/')
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
+      run: echo "version=${GITHUB_WORKSPACE##*_}" >> $GITHUB_ENV
 
-    - name: Build with Nuitka (Windows)
+    - name: Build with Nuitka
+      run: |
+        mkdir -p dist
+        nuitka --onefile --include-data-dir="Netleaf v${{ env.version }}/resources=resources" "Netleaf v${{ env.version }}/main.py" --output-dir=dist
+
+    - name: Package for Windows
       if: matrix.os == 'windows-latest'
       run: |
-        python -m nuitka --standalone --onefile \
-        --windows-disable-console \
-        --mingw64 \
-        --show-memory \
-        --show-progress \
-        --follow-imports \
-        --enable-plugin=pyside6 \
-        --windows-icon-from-ico="Netleaf v${{ env.VERSION }}/resources/icon.png" \
-        "Netleaf v${{ env.VERSION }}/main.py"
+        mv "dist/main.exe" "dist/Netleaf Setup v${{ env.version }}.exe"
 
-    - name: Build with Nuitka (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        python3 -m nuitka --standalone --onefile \
-        --show-memory \
-        --show-progress \
-        --follow-imports \
-        --enable-plugin=pyside6 \
-        --linux-onefile-icon="Netleaf v${{ env.VERSION }}/resources/icon.png" \
-        "Netleaf v${{ env.VERSION }}/main.py"
-
-    - name: Build with Nuitka (macOS)
+    - name: Package for macOS
       if: matrix.os == 'macos-latest'
       run: |
-        python3 -m nuitka --standalone --onefile \
-        --show-memory \
-        --show-progress \
-        --follow-imports \
-        --enable-plugin=pyside6 \
-        "Netleaf v${{ env.VERSION }}/main.py"
+        # Create a .dmg using hdiutil or any other suitable tool
+        hdiutil create -volname "Netleaf Setup v${{ env.version }}" -srcfolder dist -ov -format UDZO "dist/Netleaf Setup v${{ env.version }}.dmg"
 
-    - name: Create Windows Installer
-      if: matrix.os == 'windows-latest'
-      run: |
-        choco install nsis -y
-        echo '
-        !include "MUI2.nsh"
-        Name "Netleaf v${{ env.VERSION }}"
-        OutFile "Netleaf Setup v${{ env.VERSION }}.exe"
-        InstallDir "$PROGRAMFILES\Netleaf"
-        !insertmacro MUI_PAGE_DIRECTORY
-        !insertmacro MUI_PAGE_INSTFILES
-        Section
-          SetOutPath $INSTDIR
-          File /r "main.dist\*.*"
-          CreateShortCut "$DESKTOP\Netleaf.lnk" "$INSTDIR\main.exe"
-          WriteUninstaller "$INSTDIR\uninstall.exe"
-        SectionEnd
-        Section "Uninstall"
-          Delete "$DESKTOP\Netleaf.lnk"
-          RMDir /r "$INSTDIR"
-        SectionEnd
-        ' > installer.nsi
-        makensis installer.nsi
-
-    - name: Create macOS DMG
-      if: matrix.os == 'macos-latest'
-      run: |
-        mkdir -p dist/dmg
-        cp -R main.dist dist/dmg/Netleaf.app
-        hdiutil create -volname "Netleaf v${{ env.VERSION }}" -srcfolder dist/dmg -ov -format UDZO "Netleaf Setup v${{ env.VERSION }}.dmg"
-
-    - name: Create Debian Package
+    - name: Package for Linux (deb)
       if: matrix.os == 'ubuntu-latest'
       run: |
-        mkdir -p netleaf_${{ env.VERSION }}/DEBIAN
-        mkdir -p netleaf_${{ env.VERSION }}/usr/local/bin/netleaf
-        cp -R main.dist/* netleaf_${{ env.VERSION }}/usr/local/bin/netleaf/
-        echo "Package: netleaf
-        Version: ${{ env.VERSION }}
-        Section: utils
-        Priority: optional
-        Architecture: amd64
-        Maintainer: Niamorro
-        Description: Netleaf Application
-         Network scanning tool.
-        " > netleaf_${{ env.VERSION }}/DEBIAN/control
-        dpkg-deb --build netleaf_${{ env.VERSION }}
-        mv netleaf_${{ env.VERSION }}.deb "Netleaf Setup v${{ env.VERSION }}.deb"
+        # Install FPM for packaging
+        sudo apt-get install -y ruby ruby-dev rubygems build-essential
+        sudo gem install --no-document fpm
+        # Create .deb package
+        fpm -s dir -t deb -n "netleaf" -v "${{ env.version }}" --license "GPLv3" --maintainer "Niamorro" --description "Netleaf Application" --after-install <(echo '#!/bin/bash\nexit 0') --after-remove <(echo '#!/bin/bash\nexit 0') dist/=/
 
-    - name: Create RPM Package
+    - name: Package for Linux (rpm)
       if: matrix.os == 'ubuntu-latest'
       run: |
-        sudo apt-get install rpm -y
-        mkdir -p ~/rpmbuild/{SPECS,SOURCES,BUILD,RPMS,SRPMS}
-        echo "Name: netleaf
-        Version: ${{ env.VERSION }}
-        Release: 1
-        Summary: Netleaf Application
-        License: GPLv3
+        # Create .rpm package
+        fpm -s dir -t rpm -n "netleaf" -v "${{ env.version }}" --license "GPLv3" --maintainer "Niamorro" --description "Netleaf Application" --after-install <(echo '#!/bin/bash\nexit 0') --after-remove <(echo '#!/bin/bash\nexit 0') dist/=/
         
-        %description
-        Network scanning tool.
-        
-        %prep
-        # No source unpacking needed
-        
-        %install
-        mkdir -p %{buildroot}/usr/local/bin/netleaf
-        cp -R main.dist/* %{buildroot}/usr/local/bin/netleaf/
-        
-        %files
-        /usr/local/bin/netleaf/*
-        
-        %changelog
-        * $(date '+%a %b %d %Y') Niamorro <> - ${{ env.VERSION }}-1
-        - Initial RPM release" > ~/rpmbuild/SPECS/netleaf.spec
-        rpmbuild -bb ~/rpmbuild/SPECS/netleaf.spec
-        mv ~/rpmbuild/RPMS/x86_64/netleaf-${{ env.VERSION }}-1.x86_64.rpm "Netleaf Setup v${{ env.VERSION }}.rpm"
-
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: Netleaf Setup v${{ env.VERSION }}
-        path: Netleaf Setup v${{ env.VERSION }}.*
-        if-no-files-found: error
+        name: installers
+        path: dist/
