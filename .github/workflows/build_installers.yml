@@ -1,4 +1,4 @@
-name: Build Netleaf App Installers
+name: Build and Package Python App
 
 on:
   push:
@@ -6,150 +6,83 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  APP_NAME: Netleaf
+  APP_VERSION: 1.0.0
+
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: [3.9]
-    timeout-minutes: 90
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            output_name: netleaf
+          - os: macos-latest
+            output_name: Netleaf.app
+          - os: windows-latest
+            output_name: Netleaf.exe
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v2
 
-    - name: Set version
-      run: |
-        VERSION=$(ls -d Netleaf*/ | sed 's/Netleaf //' | sed 's/\/$//')
-        echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
-        echo "DEB_VERSION=$(echo $VERSION | sed 's/^v//')" >> $GITHUB_ENV
-      shell: bash
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+    - name: Set up Python
+      uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.x'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install PySide6 nuitka
-      
-    - name: Build with Nuitka (Windows)
+        pip install pyinstaller
+        pip install -r requirements.txt
+
+    - name: Create version file
+      run: echo "${{ env.APP_VERSION }}" > version.txt
+
+    - name: Build with PyInstaller
+      run: pyinstaller --onefile --add-data "version.txt:." --name "${{ env.APP_NAME }}" "Netleaf ${{ env.APP_VERSION }}/main.py"
+
+    - name: Package for Windows
       if: matrix.os == 'windows-latest'
       run: |
-        python -m nuitka --standalone --enable-plugin=pyside6 --follow-imports `
-        --include-package=PySide6 --output-dir=dist "Netleaf ${{ env.APP_VERSION }}/main.py" `
-        --assume-yes-for-downloads --jobs=2
-      shell: pwsh
+        Invoke-WebRequest -Uri "https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip" -OutFile "wix311-binaries.zip"
+        Expand-Archive -Path "wix311-binaries.zip" -DestinationPath "wix311"
+        $env:PATH += ";$pwd\wix311"
+        heat dir "dist\${{ env.APP_NAME }}" -cg AppFiles -dr INSTALLDIR -out app.wxs
+        candle app.wxs -out app.wixobj
+        light app.wixobj -out "dist\${{ env.APP_NAME }}-${{ env.APP_VERSION }}-win64.msi"
 
-    - name: Build with Nuitka (non-Windows)
-      if: matrix.os != 'windows-latest'
-      run: |
-        python -m nuitka --standalone --enable-plugin=pyside6 --follow-imports \
-        --include-package=PySide6 --output-dir=dist "Netleaf ${{ env.APP_VERSION }}/main.py" \
-        --jobs=2
-      shell: bash
-      
-    - name: Check Nuitka build output
-      run: |
-        ls -R dist
-        if [ ! -f dist/main.dist/main ] && [ ! -f dist/main.dist/main.exe ]; then
-          echo "Error: Nuitka build failed to produce expected output"
-          exit 1
-        fi
-      shell: bash
-
-    - name: Create Windows Installer
-      if: matrix.os == 'windows-latest'
-      run: |
-        choco install nsis -y
-        $NSIS_SCRIPT = @"
-        !include MUI2.nsh
-        Name "Netleaf ${{ env.APP_VERSION }}"
-        OutFile "dist\Netleaf ${{ env.APP_VERSION }}.exe"
-        InstallDir "$PROGRAMFILES\Netleaf"
-        !insertmacro MUI_PAGE_DIRECTORY
-        !insertmacro MUI_PAGE_INSTFILES
-        Section "Install"
-          SetOutPath "$INSTDIR"
-          File /r "dist\main.dist\*"
-          CreateShortCut "$DESKTOP\Netleaf.lnk" "$INSTDIR\main.exe"
-        SectionEnd
-        "@
-        Set-Content -Path "installer.nsi" -Value $NSIS_SCRIPT
-        makensis installer.nsi
-        if (-not (Test-Path "dist\Netleaf ${{ env.APP_VERSION }}.exe")) {
-          Write-Error "Failed to create Windows installer"
-          exit 1
-        }
-
-    - name: Create macOS DMG
+    - name: Package for macOS
       if: matrix.os == 'macos-latest'
       run: |
-        mkdir -p dist/Netleaf.app/Contents/MacOS
-        mv dist/main.dist/main dist/Netleaf.app/Contents/MacOS/Netleaf
-        hdiutil create -volname "Netleaf ${{ env.APP_VERSION }}" -srcfolder dist/Netleaf.app -ov -format UDZO "dist/Netleaf ${{ env.APP_VERSION }}.dmg"
+        hdiutil create -volname "${{ env.APP_NAME }}" -srcfolder "dist/${{ matrix.output_name }}" -ov -format UDZO "dist/${{ env.APP_NAME }}-${{ env.APP_VERSION }}-macos.dmg"
 
-    - name: Create Linux .deb package
+    - name: Package for Linux (deb)
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y dpkg-dev
-        mkdir -p dist/deb/DEBIAN dist/deb/usr/bin
-        cp -r dist/main.dist/* dist/deb/usr/bin/
-        echo "Package: netleaf
-        Version: ${{ env.DEB_VERSION }}
-        Section: base
-        Priority: optional
-        Architecture: amd64
-        Maintainer: Your Name <your.email@example.com>
-        Description: Netleaf application
-        " > dist/deb/DEBIAN/control
-        dpkg-deb --build dist/deb "dist/Netleaf ${{ env.APP_VERSION }}.deb"
+        sudo apt-get install -y ruby-dev build-essential
+        sudo gem install fpm
+        fpm -s dir -t deb -n "${{ env.APP_NAME }}" -v "${{ env.APP_VERSION }}" "./dist/${{ matrix.output_name }}=/usr/bin/${{ env.APP_NAME }}"
 
-    - name: Create Linux .rpm package
+    - name: Package for Linux (rpm)
       if: matrix.os == 'ubuntu-latest'
       run: |
-        sudo apt-get install -y rpm
-        mkdir -p dist/rpm/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-        cp -r dist/main.dist/* dist/rpm/BUILD/
-        echo "Name: netleaf
-        Version: ${{ env.DEB_VERSION }}
-        Release: 1
-        Summary: Netleaf application
-        License: Your License
-        BuildRoot: %{_topdir}/BUILDROOT
-        
-        %description
-        Netleaf application
-        
-        %prep
-        # No prep needed
-        
-        %build
-        # No build needed
-        
-        %install
-        mkdir -p %{buildroot}/usr/bin
-        cp -r %{_topdir}/BUILD/* %{buildroot}/usr/bin/
-        
-        %files
-        /usr/bin/*
-        
-        %post
-        # Add any post-install commands here
-        " > dist/rpm/SPECS/netleaf.spec
-        rpmbuild -bb --define "_topdir $(pwd)/dist/rpm" dist/rpm/SPECS/netleaf.spec
-        mv dist/rpm/RPMS/*/*.rpm "dist/Netleaf ${{ env.APP_VERSION }}.rpm"
+        fpm -s dir -t rpm -n "${{ env.APP_NAME }}" -v "${{ env.APP_VERSION }}" "./dist/${{ matrix.output_name }}=/usr/bin/${{ env.APP_NAME }}"
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       with:
-        name: installer-${{ matrix.os }}
-        path: |
-          dist/Netleaf*.exe
-          dist/Netleaf*.dmg
-          dist/Netleaf*.deb
-          dist/Netleaf*.rpm
+        name: ${{ env.APP_NAME }}-${{ matrix.os }}
+        path: dist/*
+
+    - name: Create Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*
+        tag_name: v${{ env.APP_VERSION }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
