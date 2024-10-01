@@ -36,7 +36,10 @@ jobs:
     - name: Build with Nuitka
       run: |
         mkdir -p dist
-        nuitka --onefile --include-data-dir="Netleaf v${{ env.version }}/resources=resources" "Netleaf v${{ env.version }}/main.py" --output-dir=dist
+        nuitka --onefile \
+               --include-data-dir="${{ github.workspace }}/Netleaf v${{ env.version }}/resources=resources" \
+               "${{ github.workspace }}/Netleaf v${{ env.version }}/main.py" \
+               --output-dir=dist
 
     - name: Package for Windows
       if: matrix.os == 'windows-latest'
