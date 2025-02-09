@@ -1,16 +1,16 @@
 {
     "Appearance": {
-        "Theme": "Light"
+        "Theme": "Dark"
     },
     "Logging": {
         "CreateLogs": false
     },
     "Scanning": {
-        "Attempts": 5,
+        "Attempts": 3,
         "Protocols": {
-            "ICMP": true,
-            "TCP": true,
-            "UDP": true,
+            "ICMP": false,
+            "TCP": false,
+            "UDP": false,
             "ARP": true
         },
         "TCPPorts": [

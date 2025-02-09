@@ -1,5 +1,15 @@
 ## Changes to Netleaf
 
+## [v3.0.0] - 2025-2-09
+
+### Added
+- Added display of device name and manufacturer.
+- Performance Optimizations.
+
+### Changed
+- Update UI.
+- Scanning logic moved to scapy.
+
 ## [v2.1.1] - 2024-7-15
 
 ### Added
