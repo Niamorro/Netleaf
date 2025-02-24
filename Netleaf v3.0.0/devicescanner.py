@@ -13,6 +13,7 @@ from datetime import datetime
 from scanner import ScannerThread
 from settings_window import SettingsWindow
 from port_scanner import PortScannerThread
+from about_window import AboutDialog
 import qdarktheme
 import csv
 
@@ -124,11 +125,15 @@ class DeviceScanner(QMainWindow):
         self.settings_action.triggered.connect(self.show_settings)
         self.settings_menu.addAction(self.settings_action)
 
+        self.help_menu = self.menuBar().addMenu('Help')
+        self.about_action = QAction('About', self)
+        self.about_action.triggered.connect(self.show_about)
+        self.help_menu.addAction(self.about_action)
+
         # Window Setup
         self.setGeometry(300, 300, 800, 600)
         self.setWindowTitle('Netleaf')
-        icon_path = 'app_icon.png'
-        self.setWindowIcon(QIcon(icon_path))
+        self.setWindowIcon(QIcon("app_icon.png"))
 
         # Initialize Scanner Thread
         self.scanner_thread = ScannerThread("", "", "")
@@ -138,6 +143,10 @@ class DeviceScanner(QMainWindow):
         self.set_theme(self.settings.get('Appearance', {}).get('Theme', 'Light'))
 
         self.show()
+
+    def show_about(self):
+        about_dialog = AboutDialog(self)
+        about_dialog.exec_()
 
     def load_settings(self):
         if os.path.exists('settings.json'):

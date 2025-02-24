@@ -3,7 +3,7 @@ from scapy.all import ARP, ICMP, TCP, UDP, IP, sr1, srp1, sr
 from scapy.layers.inet import Ether
 from PySide6.QtCore import QThread, Signal
 from datetime import datetime
-import mac_vendor_lookup
+from mac_vendor_lookup import MacLookup, BaseMacLookup
 import socket
 import ipaddress
 import concurrent.futures
@@ -16,7 +16,8 @@ class ScannerThread(QThread):
         self.ip_start = ip_start
         self.ip_end = ip_end
         self.settings = settings
-        self.mac_lookup = mac_vendor_lookup.MacLookup()
+        BaseMacLookup.cache_path = "mac-vendors.txt"
+        self.mac_lookup = MacLookup()
         try:
             self.mac_lookup.load_vendors()
         except:

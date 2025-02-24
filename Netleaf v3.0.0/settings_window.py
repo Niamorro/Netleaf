@@ -1,11 +1,17 @@
 from PySide6.QtWidgets import (
     QVBoxLayout, QLabel, QLineEdit, QHBoxLayout, QDialog, QComboBox, QGroupBox, QCheckBox, QSpinBox, QDialogButtonBox
 )
+from PySide6.QtGui import QIcon
 
 class SettingsWindow(QDialog):
     def __init__(self, settings):
         super().__init__()
         self.settings = settings
+
+        self.setWindowIcon(QIcon("app_icon.png"))
+        
+        self.setWindowTitle("Settings")
+
         self.init_ui()
 
     def init_ui(self):
